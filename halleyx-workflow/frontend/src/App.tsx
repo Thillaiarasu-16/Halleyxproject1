@@ -26,9 +26,15 @@ function ProtectedLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  const isCEO      = user.role === 'CEO';
+  const isEmployee = user.role === 'EMPLOYEE';
+  const isManager  = user.role === 'FINANCE_MANAGER';
+
+  // CEO and Finance Manager only see Audit Log in nav
+  // Employee and Finance Manager see Workflows too
   const navItems = [
-    { to: '/',      label: 'Workflows', icon: GitBranch },
-    { to: '/audit', label: 'Audit Log', icon: ClipboardList },
+    ...(!isCEO ? [{ to: '/', label: isEmployee ? 'Workflows' : 'Workflows', icon: GitBranch }] : []),
+    { to: '/audit', label: isCEO ? 'Pending Approvals' : isManager ? 'All Requests' : 'My Requests', icon: ClipboardList },
   ];
 
   return (
@@ -96,7 +102,8 @@ function ProtectedLayout() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
         <Routes>
-          <Route path="/"                   element={<WorkflowList />} />
+          {/* CEO lands directly on audit log */}
+          <Route path="/" element={isCEO ? <Navigate to="/audit" replace /> : <WorkflowList />} />
           <Route path="/workflows/new"      element={<WorkflowEditor />} />
           <Route path="/workflows/:id/edit" element={<WorkflowEditor />} />
           <Route path="/executions/:id"     element={<ExecutionView />} />

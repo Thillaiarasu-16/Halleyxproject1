@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, Clock } from 'lucide-react';
 import { useExecutions } from '../api/hooks';
 import { StatusBadge, EmptyState, Spinner, PageHeader } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
@@ -15,25 +15,82 @@ export default function AuditLog() {
   const { user } = useAuth();
   const { data: executions, isLoading } = useExecutions();
 
-  const isManager = user?.role === 'FINANCE_MANAGER' || user?.role === 'CEO';
+  const isEmployee = user?.role === 'EMPLOYEE';
+  const isManager  = user?.role === 'FINANCE_MANAGER';
+  const isCEO      = user?.role === 'CEO';
+
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'failed'>('all');
+
+  // CEO only sees requests that are pending (awaiting their approval)
+  // They don't need to see completed/failed ones from other users
+  const filtered = (executions ?? []).filter((e: Execution) => {
+    if (isCEO) {
+      // CEO sees PENDING requests (which include ones at CEO Approval step)
+      if (filter === 'all') return e.status === 'PENDING' || e.status === 'COMPLETED' || e.status === 'FAILED';
+      return e.status.toUpperCase() === filter.toUpperCase();
+    }
+    if (filter === 'all') return true;
+    return e.status.toUpperCase() === filter.toUpperCase();
+  });
+
+  const pendingCount = (executions ?? []).filter((e: Execution) => e.status === 'PENDING').length;
+
+  const pageTitle = isCEO
+    ? 'Pending Approvals'
+    : isManager
+      ? 'All Requests'
+      : 'My Requests';
+
+  const pageDesc = isCEO
+    ? 'Requests escalated and awaiting your final decision'
+    : isManager
+      ? 'All workflow requests submitted by employees'
+      : 'Your submitted workflow requests and their status';
 
   return (
     <div>
       <PageHeader
-        title="Audit Log"
-        description={
-          isManager
-            ? 'All workflow execution requests across all users'
-            : 'Your submitted workflow requests'
+        title={pageTitle}
+        description={pageDesc}
+        action={
+          pendingCount > 0 ? (
+            <span className="badge bg-orange-900/40 text-orange-300 border border-orange-800/50 text-xs px-3 py-1.5">
+              <Clock size={12} className="inline mr-1" />
+              {pendingCount} pending
+            </span>
+          ) : undefined
         }
       />
 
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-6">
+        {(['all', 'pending', 'completed', 'failed'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
+              filter === f
+                ? 'bg-brand-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1).toLowerCase()}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner /></div>
-      ) : !executions?.length ? (
+      ) : !filtered.length ? (
         <EmptyState
-          title="No requests yet"
-          description={isManager ? 'No workflow executions found' : 'You have not submitted any requests yet'}
+          title={filter === 'all' ? 'No requests yet' : `No ${filter} requests`}
+          description={
+            isCEO
+              ? 'No requests have been escalated to you yet'
+              : isEmployee
+                ? 'You have not submitted any requests yet'
+                : 'No workflow requests found'
+          }
         />
       ) : (
         <div className="card overflow-hidden">
@@ -41,9 +98,14 @@ export default function AuditLog() {
             <thead>
               <tr className="border-b border-gray-800">
                 {[
-                  'Request ID', 'Workflow', 'Ver.', 'Req. Ver.',
-                  ...(isManager ? ['Submitted By'] : []),
-                  'Status', 'Start Time', 'End Time', 'Actions'
+                  'Request ID',
+                  'Workflow',
+                  'Req. Ver.',
+                  ...(isManager || isCEO ? ['Submitted By'] : []),
+                  'Status',
+                  'Start Time',
+                  'End Time',
+                  'Actions'
                 ].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {h}
@@ -52,22 +114,21 @@ export default function AuditLog() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
-              {executions.map((exec: Execution) => (
+              {filtered.map((exec: Execution) => (
                 <tr key={exec.id} className="hover:bg-gray-800/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-gray-400">
                     {exec.id.slice(0, 8)}…
                   </td>
                   <td className="px-4 py-3 text-gray-200">{exec.workflow?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-400">v{exec.workflow_version}</td>
                   <td className="px-4 py-3">
                     <span className="badge bg-gray-800 text-gray-300 border border-gray-700">
                       r{exec.request_version ?? 1}
                     </span>
                   </td>
-                  {isManager && (
+                  {(isManager || isCEO) && (
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-gray-200 text-xs">{exec.user?.name ?? exec.triggered_by ?? '—'}</p>
+                        <p className="text-gray-200 text-xs font-medium">{exec.user?.name ?? '—'}</p>
                         <p className="text-gray-500 text-xs">{ROLE_LABELS[exec.user?.role ?? ''] ?? ''}</p>
                       </div>
                     </td>
@@ -85,7 +146,8 @@ export default function AuditLog() {
                         className="btn-secondary py-1 px-2.5 text-xs"
                         onClick={() => navigate(`/executions/${exec.id}`)}
                       >
-                        <Eye size={12} /> View
+                        <Eye size={12} />
+                        {exec.status === 'PENDING' && (isManager || isCEO) ? ' Review' : ' View'}
                       </button>
                       {/* Employee can resubmit their own rejected requests */}
                       {exec.status === 'FAILED' && exec.triggered_by_id === user?.id && (
