@@ -33,6 +33,25 @@ services:
       timeout: 5s
       retries: 5
 
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: halleyx_rabbitmq
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: halleyx
+      RABBITMQ_DEFAULT_PASS: halleyx123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -47,6 +66,7 @@ services:
     environment:
       DATABASE_URL: postgresql://halleyx:halleyx123@postgres:5432/halleyx_db
       REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://halleyx:halleyx123@rabbitmq:5672
       JWT_SECRET: change-this-in-production
       PORT: 3000
       NODE_ENV: development
@@ -73,5 +93,6 @@ services:
       - /app/node_modules
 
 volumes:
+  rabbitmq_data:
   postgres_data:
   redis_data:
