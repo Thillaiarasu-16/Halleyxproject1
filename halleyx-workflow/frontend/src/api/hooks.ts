@@ -125,10 +125,11 @@ export const useExecution = (id?: string) =>
     queryKey: ['execution', id],
     queryFn: () => api.get(`/executions/${id}`).then((r) => r.data),
     enabled: !!id,
-    refetchInterval: (q) =>
-      q.state.data?.status === 'IN_PROGRESS' || q.state.data?.status === 'PENDING'
-        ? 2000
-        : false,
+    retry: 1,
+    refetchInterval: (q) => {
+      const status = q.state.data?.status;
+      return status === 'IN_PROGRESS' || status === 'PENDING' ? 2000 : false;
+    },
   });
 
 export const useExecutions = () =>
@@ -140,7 +141,7 @@ export const useExecutions = () =>
 export const useStartExecution = (workflowId: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { data: Record<string, unknown>; triggered_by?: string }) =>
+    mutationFn: (data: { data: Record<string, unknown> }) =>
       api.post(`/workflows/${workflowId}/execute`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['executions'] }),
   });
@@ -151,5 +152,32 @@ export const useCancelExecution = () => {
   return useMutation({
     mutationFn: (id: string) => api.post(`/executions/${id}/cancel`).then((r) => r.data),
     onSuccess: (_d, id) => qc.invalidateQueries({ queryKey: ['execution', id] }),
+  });
+};
+
+export const useApproveExecution = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approver, comment }: { id: string; approver: string; comment?: string }) =>
+      api.post(`/executions/${id}/approve`, { approver, comment }).then((r) => r.data),
+    onSuccess: (_d, { id }) => qc.invalidateQueries({ queryKey: ['execution', id] }),
+  });
+};
+
+export const useRejectExecution = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approver, comment }: { id: string; approver: string; comment?: string }) =>
+      api.post(`/executions/${id}/reject`, { approver, comment }).then((r) => r.data),
+    onSuccess: (_d, { id }) => qc.invalidateQueries({ queryKey: ['execution', id] }),
+  });
+};
+
+export const useResubmitExecution = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      api.post(`/executions/${id}/resubmit`, { data }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['executions'] }),
   });
 };

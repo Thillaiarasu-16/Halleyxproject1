@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Play, Pencil, Trash2, GitBranch } from 'lucide-react';
+import { Plus, Search, Play, Pencil, Trash2, GitBranch, Send } from 'lucide-react';
 import { useWorkflows, useDeleteWorkflow, useStartExecution } from '../api/hooks';
 import { PageHeader, EmptyState, Spinner } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 import type { Workflow } from '../types';
 
 export default function WorkflowList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'EMPLOYEE';
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [executingId, setExecutingId] = useState<string | null>(null);
-  const [execInputs, setExecInputs] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useWorkflows(search || undefined, page);
   const deleteWorkflow = useDeleteWorkflow();
@@ -24,11 +27,13 @@ export default function WorkflowList() {
     <div>
       <PageHeader
         title="Workflows"
-        description="Create and manage your automation workflows"
+        description={isEmployee ? 'Submit requests through available workflows' : 'Create and manage automation workflows'}
         action={
-          <button className="btn-primary" onClick={() => navigate('/workflows/new')}>
-            <Plus size={15} /> New Workflow
-          </button>
+          !isEmployee ? (
+            <button className="btn-primary" onClick={() => navigate('/workflows/new')}>
+              <Plus size={15} /> New Workflow
+            </button>
+          ) : undefined
         }
       />
 
@@ -43,14 +48,10 @@ export default function WorkflowList() {
         />
       </div>
 
-      {/* Table */}
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner /></div>
       ) : !data?.data.length ? (
-        <EmptyState
-          title="No workflows yet"
-          description="Create your first workflow to get started"
-        />
+        <EmptyState title="No workflows yet" description="No workflows available" />
       ) : (
         <>
           <div className="card overflow-hidden">
@@ -58,9 +59,7 @@ export default function WorkflowList() {
               <thead>
                 <tr className="border-b border-gray-800">
                   {['Name', 'Steps', 'Version', 'Status', 'Actions'].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {h}
-                    </th>
+                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -69,12 +68,10 @@ export default function WorkflowList() {
                   <WorkflowRow
                     key={wf.id}
                     workflow={wf}
+                    isEmployee={isEmployee}
                     onEdit={() => navigate(`/workflows/${wf.id}/edit`)}
                     onDelete={() => handleDelete(wf.id, wf.name)}
-                    onExecute={() => {
-                      setExecutingId(wf.id);
-                      setExecInputs({});
-                    }}
+                    onExecute={() => setExecutingId(wf.id)}
                   />
                 ))}
               </tbody>
@@ -94,10 +91,11 @@ export default function WorkflowList() {
         </>
       )}
 
-      {/* Execute Modal */}
+      {/* Execute / Send Request Modal */}
       {executingId && data?.data && (
         <ExecuteModal
           workflow={data.data.find(w => w.id === executingId)!}
+          isEmployee={isEmployee}
           onClose={() => setExecutingId(null)}
           onStarted={(execId) => {
             setExecutingId(null);
@@ -109,10 +107,12 @@ export default function WorkflowList() {
   );
 }
 
+// ─── Workflow Row ─────────────────────────────────────────────────────────────
 function WorkflowRow({
-  workflow, onEdit, onDelete, onExecute
+  workflow, isEmployee, onEdit, onDelete, onExecute
 }: {
   workflow: Workflow;
+  isEmployee: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onExecute: () => void;
@@ -135,35 +135,46 @@ function WorkflowRow({
       <td className="px-5 py-3.5 text-gray-400">{workflow._count?.steps ?? 0}</td>
       <td className="px-5 py-3.5 text-gray-400">v{workflow.version}</td>
       <td className="px-5 py-3.5">
-        <span className={`badge ${workflow.is_active ? 'bg-green-900/40 text-green-300 border border-green-800/50' : 'bg-gray-800 text-gray-400'}`}>
+        <span className={`badge ${workflow.is_active
+          ? 'bg-green-900/40 text-green-300 border border-green-800/50'
+          : 'bg-gray-800 text-gray-400'}`}>
           {workflow.is_active ? 'Active' : 'Inactive'}
         </span>
       </td>
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-2">
           <button onClick={onExecute} className="btn-primary py-1 px-2.5 text-xs">
-            <Play size={12} /> Execute
+            {isEmployee
+              ? <><Send size={12} /> Send Request</>
+              : <><Play size={12} /> Execute</>}
           </button>
-          <button onClick={onEdit} className="btn-secondary py-1 px-2.5 text-xs">
-            <Pencil size={12} /> Edit
-          </button>
-          <button onClick={onDelete} className="btn-danger py-1 px-2.5 text-xs">
-            <Trash2 size={12} />
-          </button>
+          {!isEmployee && (
+            <>
+              <button onClick={onEdit} className="btn-secondary py-1 px-2.5 text-xs">
+                <Pencil size={12} /> Edit
+              </button>
+              <button onClick={onDelete} className="btn-danger py-1 px-2.5 text-xs">
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
         </div>
       </td>
     </tr>
   );
 }
 
+// ─── Execute / Send Request Modal ─────────────────────────────────────────────
 function ExecuteModal({
-  workflow, onClose, onStarted
+  workflow, isEmployee, onClose, onStarted
 }: {
   workflow: Workflow;
+  isEmployee: boolean;
   onClose: () => void;
   onStarted: (execId: string) => void;
 }) {
   const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
   const startExecution = useStartExecution(workflow.id);
   const schema = workflow.input_schema ?? {};
 
@@ -173,14 +184,39 @@ function ExecuteModal({
       const raw = inputs[key] ?? '';
       data[key] = field.type === 'number' ? Number(raw) : raw;
     }
-    const exec = await startExecution.mutateAsync({ data, triggered_by: 'user' });
-    onStarted(exec.id);
+    const exec = await startExecution.mutateAsync({ data });
+    if (isEmployee) {
+      setSubmitted(true);
+      setTimeout(() => onStarted(exec.id), 1800);
+    } else {
+      onStarted(exec.id);
+    }
   };
+
+  // ── Success screen shown to employees after submission ────────────────────
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="card w-full max-w-md p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-900/40 border border-green-800/50 flex items-center justify-center mx-auto mb-4">
+            <Send size={22} className="text-green-400" />
+          </div>
+          <h2 className="text-base font-semibold text-white mb-2">Request Sent!</h2>
+          <p className="text-sm text-gray-400">
+            Your request has been submitted and is awaiting approval from the Finance Manager.
+          </p>
+          <p className="text-xs text-gray-600 mt-3">Redirecting to request details…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="card w-full max-w-md p-6">
-        <h2 className="text-base font-semibold text-white mb-1">Execute Workflow</h2>
+        <h2 className="text-base font-semibold text-white mb-1">
+          {isEmployee ? 'Send Request' : 'Execute Workflow'}
+        </h2>
         <p className="text-sm text-gray-400 mb-5">{workflow.name}</p>
 
         {Object.entries(schema).map(([key, field]) => (
@@ -220,8 +256,9 @@ function ExecuteModal({
             onClick={handleSubmit}
             disabled={startExecution.isPending}
           >
-            {startExecution.isPending ? <Spinner className="w-4 h-4" /> : <Play size={14} />}
-            Start Execution
+            {startExecution.isPending
+              ? <Spinner className="w-4 h-4" />
+              : isEmployee ? <><Send size={14} /> Send Request</> : <><Play size={14} /> Start Execution</>}
           </button>
         </div>
       </div>

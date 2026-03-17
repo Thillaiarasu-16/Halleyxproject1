@@ -56,24 +56,49 @@ model Rule {
   @@map("rules")
 }
 
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       UserRole @default(EMPLOYEE)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  executions Execution[]
+
+  @@map("users")
+}
+
 model Execution {
   id               String          @id @default(uuid())
   workflow_id      String
   workflow_version Int
+  request_version  Int             @default(1)
   status           ExecutionStatus @default(PENDING)
   data             Json            @default("{}")
   logs             Json            @default("[]")
   current_step_id  String?
   retries          Int             @default(0)
   triggered_by     String?
+  triggered_by_id  String?
+  parent_id        String?
+  rejection_note   String?
   started_at       DateTime        @default(now())
   ended_at         DateTime?
   created_at       DateTime        @default(now())
   updated_at       DateTime        @updatedAt
 
   workflow         Workflow        @relation(fields: [workflow_id], references: [id])
+  user             User?           @relation(fields: [triggered_by_id], references: [id])
 
   @@map("executions")
+}
+
+enum UserRole {
+  EMPLOYEE
+  FINANCE_MANAGER
+  CEO
 }
 
 enum StepType {

@@ -47,15 +47,20 @@ export interface Execution {
   id: string;
   workflow_id: string;
   workflow_version: number;
+  request_version: number;
   status: ExecutionStatus;
   data: Record<string, unknown>;
   logs: StepLog[];
   current_step_id?: string;
   retries: number;
   triggered_by?: string;
+  triggered_by_id?: string;
+  parent_id?: string;
+  rejection_note?: string;
   started_at: string;
   ended_at?: string;
   workflow?: { name: string };
+  user?: { name: string; email: string; role: string };
 }
 
 export interface StepLog {
@@ -64,10 +69,21 @@ export interface StepLog {
   evaluated_rules: { rule: string; result: boolean; error?: string }[];
   matched_rule: string | null;
   selected_next_step: string | null;
-  status: string;
+  status: 'completed' | 'awaiting_approval' | 'rejected' | 'failed';
+  assignee_email?: string | null;
+  instructions?: string | null;
   started_at: string;
-  ended_at: string;
-  duration_ms: number;
+  ended_at: string | null;
+  duration_ms: number | null;
+  approval_action?: 'approved' | 'rejected' | null;
+  approver?: string | null;
+  approval_comment?: string | null;
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  notification_sent?: boolean;
+  notification_channel?: string;
+  notification_recipient?: string;
+  preview_url?: string | null;
 }
 
 export interface PaginatedResponse<T> {
