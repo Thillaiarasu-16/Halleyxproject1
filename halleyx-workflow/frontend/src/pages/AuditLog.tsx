@@ -93,7 +93,7 @@ export default function AuditLog() {
           }
         />
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
@@ -107,15 +107,15 @@ export default function AuditLog() {
                   'End Time',
                   'Actions'
                 ].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-gray-500">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody className="divide-y divide-slate-100 dark:divide-gray-800/50">
               {filtered.map((exec: Execution) => (
-                <tr key={exec.id} className="hover:bg-gray-800/30 transition-colors">
+                <tr key={exec.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-gray-800/30">
                   <td className="px-4 py-3 font-mono text-xs text-gray-400">
                     {exec.id.slice(0, 8)}…
                   </td>
@@ -128,8 +128,8 @@ export default function AuditLog() {
                   {(isManager || isCEO) && (
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-gray-200 text-xs font-medium">{exec.user?.name ?? '—'}</p>
-                        <p className="text-gray-500 text-xs">{ROLE_LABELS[exec.user?.role ?? ''] ?? ''}</p>
+                        <p className="text-slate-800 dark:text-gray-200 text-xs font-medium">{exec.user?.name ?? '—'}</p>
+                        <p className="text-slate-500 dark:text-gray-500 text-xs">{ROLE_LABELS[exec.user?.role ?? ''] ?? ''}</p>
                       </div>
                     </td>
                   )}

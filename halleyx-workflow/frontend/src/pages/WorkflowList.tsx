@@ -54,16 +54,16 @@ export default function WorkflowList() {
         <EmptyState title="No workflows yet" description="No workflows available" />
       ) : (
         <>
-          <div className="card overflow-hidden">
+          <div className="card overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
                   {['Name', 'Steps', 'Version', 'Status', 'Actions'].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-gray-500">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/50">
+              <tbody className="divide-y divide-slate-100 dark:divide-gray-800/50">
                 {data.data.map((wf: Workflow) => (
                   <WorkflowRow
                     key={wf.id}
@@ -118,16 +118,16 @@ function WorkflowRow({
   onExecute: () => void;
 }) {
   return (
-    <tr className="hover:bg-gray-800/30 transition-colors">
+    <tr className="transition-colors hover:bg-slate-50 dark:hover:bg-gray-800/30">
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-brand-900/50 border border-brand-800/50 flex items-center justify-center flex-shrink-0">
             <GitBranch size={13} className="text-brand-400" />
           </div>
           <div>
-            <p className="font-medium text-gray-100">{workflow.name}</p>
+            <p className="font-medium text-slate-800 dark:text-gray-100">{workflow.name}</p>
             {workflow.description && (
-              <p className="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{workflow.description}</p>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5 truncate max-w-xs">{workflow.description}</p>
             )}
           </div>
         </div>

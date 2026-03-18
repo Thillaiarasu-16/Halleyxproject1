@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Eye, EyeOff } from 'lucide-react';
+import { Zap, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui';
 
@@ -12,6 +14,7 @@ const DEMO_ACCOUNTS = [
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate  = useNavigate();
 
   const [email,    setEmail]    = useState('');
@@ -41,7 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-950 transition-colors duration-200 px-4">
       <div className="w-full max-w-md">
 
         {/* Logo */}
@@ -55,10 +58,24 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Theme toggle */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={toggleTheme}
+            className={clsx(
+              'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
+              'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50',
+              'dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700'
+            )}
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
+
         {/* Card */}
-        <div className="card p-8">
-          <h1 className="text-lg font-semibold text-white mb-1">Sign in</h1>
-          <p className="text-sm text-gray-400 mb-6">Enter your credentials to continue</p>
+        <div className="card p-8 shadow-sm">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Sign in</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">Enter your credentials to continue</p>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800/50 text-sm text-red-300">
