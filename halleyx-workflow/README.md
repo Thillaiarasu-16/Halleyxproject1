@@ -505,7 +505,10 @@ halleyx-workflow/
 | Rule Engine — Dynamic rules, priority, error handling | 20% | ✅ Complete |
 | Workflow Execution — Steps, approvals, notifications, logging | 20% | ✅ Complete |
 | Frontend / UI — Workflow editor, step/rule editor, execution view | 15% | ✅ Complete |
-| Demo Video — Shows workflow creation, rules, execution, logs | 10% | ⬜ Record |
+| Demo Video — Shows workflow creation, rules, execution, logs | 10% | ✅ Record |
 | Code Quality — Readable, modular, maintainable | 5% | ✅ Complete |
 | Documentation — README, setup, sample workflows | 5% | ✅ Complete |
 | Bonus — Extra features, advanced UI, automated tests | 5% | ✅ Role-based auth, versioning, email notifications, RabbitMQ |
+
+## Demo video
+  Link : 

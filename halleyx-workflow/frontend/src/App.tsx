@@ -6,6 +6,7 @@ import { useTheme } from './context/ThemeContext';
 import { Spinner } from './components/ui';
 import WorkflowList from './pages/WorkflowList';
 import WorkflowEditor from './pages/WorkflowEditor';
+import NewWorkflowPage from './pages/NewWorkflowPage';
 import ExecutionView from './pages/ExecutionView';
 import AuditLog from './pages/AuditLog';
 import LoginPage from './pages/LoginPage';
@@ -46,7 +47,6 @@ function ProtectedLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   const isCEO      = user.role === 'CEO';
-  const isEmployee = user.role === 'EMPLOYEE';
   const isManager  = user.role === 'FINANCE_MANAGER';
 
   const navItems = [
@@ -147,7 +147,7 @@ function ProtectedLayout() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
         <Routes>
           <Route path="/"                   element={isCEO ? <Navigate to="/audit" replace /> : <WorkflowList />} />
-          <Route path="/workflows/new"      element={<WorkflowEditor />} />
+          <Route path="/workflows/new"      element={<NewWorkflowPage />} />
           <Route path="/workflows/:id/edit" element={<WorkflowEditor />} />
           <Route path="/executions/:id"     element={<ExecutionView />} />
           <Route path="/audit"              element={<AuditLog />} />

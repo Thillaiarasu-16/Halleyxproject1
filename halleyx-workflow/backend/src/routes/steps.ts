@@ -18,7 +18,7 @@ stepRouter.post('/workflows/:workflow_id/steps', async (req: Request, res: Respo
   try {
     const body = StepSchema.parse(req.body);
     const step = await prisma.step.create({
-      data: { ...body, workflow_id: req.params.workflow_id, metadata: body.metadata ?? {} },
+      data: { ...body, workflow_id: req.params.workflow_id, metadata: (body.metadata ?? {}) as object },
     });
     res.status(201).json(step);
   } catch (err) {
@@ -47,9 +47,10 @@ stepRouter.get('/workflows/:workflow_id/steps', async (req: Request, res: Respon
 stepRouter.put('/steps/:id', async (req: Request, res: Response) => {
   try {
     const body = StepSchema.partial().parse(req.body);
+    const body2 = { ...body, ...(body.metadata ? { metadata: body.metadata as object } : {}) };
     const step = await prisma.step.update({
       where: { id: req.params.id },
-      data: body,
+      data: body2,
     });
     res.json(step);
   } catch (err) {
@@ -62,7 +63,24 @@ stepRouter.put('/steps/:id', async (req: Request, res: Response) => {
 // DELETE /api/steps/:id
 stepRouter.delete('/steps/:id', async (req: Request, res: Response) => {
   try {
+    const step = await prisma.step.findUnique({ where: { id: req.params.id } });
+    if (!step) return res.status(404).json({ error: 'Step not found' });
+
     await prisma.step.delete({ where: { id: req.params.id } });
+
+    // If deleted step was the start step, reassign to the next step by order
+    const workflow = await prisma.workflow.findUnique({ where: { id: step.workflow_id } });
+    if (workflow?.start_step_id === req.params.id) {
+      const nextStep = await prisma.step.findFirst({
+        where:   { workflow_id: step.workflow_id },
+        orderBy: { order: 'asc' },
+      });
+      await prisma.workflow.update({
+        where: { id: step.workflow_id },
+        data:  { start_step_id: nextStep?.id ?? null },
+      });
+    }
+
     res.status(204).send();
   } catch (err) {
     logger.error('Delete step error', { err });
