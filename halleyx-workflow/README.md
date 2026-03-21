@@ -511,4 +511,4 @@ halleyx-workflow/
 | Bonus — Extra features, advanced UI, automated tests | 5% | ✅ Role-based auth, versioning, email notifications, RabbitMQ |
 
 ## Demo video
-  Link : 
+  Link : https://drive.google.com/file/d/1JSa1HTK2cm_WyWXatx0RpSCaIH5wOAQ0/view?usp=drive_link
